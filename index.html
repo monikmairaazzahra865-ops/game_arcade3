@@ -72,13 +72,8 @@
         const canvas = document.getElementById("gameCanvas");
         const ctx = canvas.getContext("2d");
 
-        // --- SISTEM PEMUATAN LOGO GAMBAR (4 LOGO TERINTEGRASI) ---
-        const logoSources = [
-            'logo1.png', // Gambar 1: ONESANDVOSCHO
-            'logo2.png', // Gambar 2: SMKN 1 SANDEN
-            'logo3.png', // Gambar 3: MOKO
-            'logo4.png'  // Gambar 4: RPL
-        ];
+        // --- SISTEM PEMUATAN LOGO GAMBAR (4 LOGO) ---
+        const logoSources = ['smk1.jpeg', 'sanden.jpeg', 'bpkmoko.jpeg', 'rpl.jpeg'];
         const enemyLogos = [];
 
         logoSources.forEach(src => {
