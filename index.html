@@ -72,6 +72,16 @@
         const canvas = document.getElementById("gameCanvas");
         const ctx = canvas.getContext("2d");
 
+        // --- SISTEM PEMUATAN LOGO GAMBAR (4 LOGO) ---
+        const logoSources = ['logo1.png', 'logo2.png', 'logo3.png', 'logo4.png'];
+        const enemyLogos = [];
+
+        logoSources.forEach(src => {
+            const img = new Image();
+            img.src = src;
+            enemyLogos.push(img);
+        });
+
         // --- AUDIO SYNTHESIZER (Tanpa File Eksternal) ---
         const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
         
@@ -166,14 +176,17 @@
             }
         }
 
-        // --- MUSUH (AI COMPUTER) ---
+        // --- MUSUH (MENGGUNAKAN LOGO GAMBAR) ---
         class Enemy {
             constructor() {
-                this.x = Math.random() * (canvas.width - 40) + 20;
-                this.y = -20;
-                this.size = 18;
-                this.color = '#ff0055';
+                this.x = Math.random() * (canvas.width - 60) + 30;
+                this.y = -30;
+                this.size = 35; // Ukuran logo di canvas
                 this.speed = Math.random() * 1.5 + level * 0.5;
+                
+                // Pilih salah satu dari 4 logo secara acak
+                const randomIndex = Math.floor(Math.random() * enemyLogos.length);
+                this.image = enemyLogos[randomIndex];
             }
 
             update() {
@@ -181,12 +194,22 @@
             }
 
             draw() {
-                ctx.fillStyle = this.color;
-                ctx.beginPath();
-                ctx.rect(this.x - this.size/2, this.y - this.size/2, this.size, this.size);
-                ctx.fill();
-                ctx.shadowBlur = 8;
+                ctx.shadowBlur = 10;
                 ctx.shadowColor = '#ff0055';
+                
+                // Jika gambar logo berhasil dimuat, gambar logo. Jika gagal, gunakan fallback kotak.
+                if (this.image && this.image.complete && this.image.naturalWidth !== 0) {
+                    ctx.drawImage(
+                        this.image, 
+                        this.x - this.size / 2, 
+                        this.y - this.size / 2, 
+                        this.size, 
+                        this.size
+                    );
+                } else {
+                    ctx.fillStyle = '#ff0055';
+                    ctx.fillRect(this.x - this.size / 2, this.y - this.size / 2, this.size, this.size);
+                }
             }
         }
 
@@ -253,7 +276,7 @@
                     // Cek tabrakan dengan peluru
                     bullets.forEach((bullet, bIndex) => {
                         const dist = Math.hypot(bullet.x - enemy.x, bullet.y - enemy.y);
-                        if (dist < enemy.size + bullet.radius) {
+                        if (dist < enemy.size / 2 + bullet.radius) {
                             enemies.splice(eIndex, 1);
                             bullets.splice(bIndex, 1);
                             score += 10;
@@ -265,7 +288,7 @@
                     // Cek tabrakan musuh dengan pemain (Game Over)
                     [p1, p2].forEach(p => {
                         const dist = Math.hypot(p.x - enemy.x, p.y - enemy.y);
-                        if (dist < enemy.size + p.size || enemy.y > canvas.height) {
+                        if (dist < enemy.size / 2 + p.size || enemy.y > canvas.height) {
                             gameOver = true;
                             playSound(100, 'sawtooth', 0.5); // Suara kalah
                         }
