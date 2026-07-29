@@ -5,10 +5,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Arcade Battle 2D - GitHub Edition</title>
     <style>
+        /* --- Reset & Layout Dasar --- */
         body {
             margin: 0;
             padding: 0;
-            background-color: #0d0d1a;
+            background: radial-gradient(circle, #1a1a2e 0%, #05050f 100%);
             color: #fff;
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             display: flex;
@@ -19,37 +20,59 @@
             overflow: hidden;
         }
 
+        /* --- Container Game & Efek Neon --- */
         #game-container {
             position: relative;
-            box-shadow: 0 0 20px rgba(0, 255, 204, 0.5);
-            border-radius: 10px;
+            box-shadow: 0 0 30px rgba(0, 255, 204, 0.4), 0 0 10px rgba(0, 255, 204, 0.2) inset;
+            border: 2px solid #00ffcc;
+            border-radius: 12px;
             overflow: hidden;
+            background-color: #05050f;
         }
 
         canvas {
-            background: #05050f;
             display: block;
         }
 
+        /* --- Panel UI (Skor, Waktu, Level) --- */
         .ui-panel {
             position: absolute;
-            top: 10px;
-            left: 10px;
-            right: 10px;
+            top: 15px;
+            left: 20px;
+            right: 20px;
             display: flex;
             justify-content: space-between;
             font-size: 18px;
             font-weight: bold;
             pointer-events: none;
-            text-shadow: 2px 2px 4px #000;
+            text-shadow: 0 0 8px #00ffcc, 2px 2px 4px #000;
+            letter-spacing: 1px;
         }
 
-        #controls-hint {
-            margin-top: 10px;
-            font-size: 14px;
-            color: #aaa;
-            text-align: center;
+        .ui-panel div {
+            background: rgba(0, 0, 0, 0.5);
+            padding: 5px 15px;
+            border-radius: 20px;
+            border: 1px solid rgba(0, 255, 204, 0.3);
         }
+
+        /* --- Teks Panduan Kontrol --- */
+        #controls-hint {
+            margin-top: 20px;
+            font-size: 15px;
+            color: #b3ecff;
+            text-align: center;
+            background: rgba(255, 255, 255, 0.05);
+            padding: 10px 20px;
+            border-radius: 8px;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+        
+        #controls-hint b {
+            color: #fff;
+        }
+        .p1-color { color: #00f0ff; text-shadow: 0 0 5px #00f0ff; }
+        .p2-color { color: #00ff66; text-shadow: 0 0 5px #00ff66; }
     </style>
 </head>
 <body>
@@ -64,8 +87,8 @@
     </div>
 
     <div id="controls-hint">
-        <b>P1 (Biru):</b> Panah [↑↓←→] & [Space] Tembak | 
-        <b>P2 (Hijau):</b> [WASD] & [F] Tembak
+        <b class="p1-color">P1 (Biru):</b> Panah [↑↓←→] & [Space] Tembak &nbsp;&nbsp;|&nbsp;&nbsp; 
+        <b class="p2-color">P2 (Hijau):</b> [WASD] & [F] Tembak
     </div>
 
     <script>
@@ -73,6 +96,7 @@
         const ctx = canvas.getContext("2d");
 
         // --- SISTEM PEMUATAN LOGO GAMBAR (4 LOGO) ---
+        // NAMA FILE HARUS SAMA PERSIS DENGAN YANG ADA DI FOLDER
         const logoSources = ['smk1.jpeg', 'sanden.jpeg', 'bpkmoko.jpeg', 'rpl.jpeg'];
         const enemyLogos = [];
 
@@ -82,7 +106,7 @@
             enemyLogos.push(img);
         });
 
-        // --- AUDIO SYNTHESIZER (Tanpa File Eksternal) ---
+        // --- AUDIO SYNTHESIZER ---
         const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
         
         function playSound(freq, type = 'sine', duration = 0.1) {
@@ -104,18 +128,22 @@
         let level = 1;
         let score = 0;
         let gameOver = false;
+        let gameStarted = false; // Mencegah game mulai sebelum klik/tombol ditekan
 
         // --- CONTROLS ---
         const keys = {};
-        window.addEventListener('keydown', e => keys[e.code] = true);
+        window.addEventListener('keydown', e => {
+            keys[e.code] = true;
+            if(!gameStarted) gameStarted = true; // Mulai game saat tombol ditekan
+        });
         window.addEventListener('keyup', e => keys[e.code] = false);
 
         // --- ANIMASI BACKGROUND (STARFIELD) ---
-        const stars = Array.from({ length: 60 }, () => ({
+        const stars = Array.from({ length: 80 }, () => ({
             x: Math.random() * canvas.width,
             y: Math.random() * canvas.height,
             size: Math.random() * 2 + 1,
-            speed: Math.random() * 1 + 0.5
+            speed: Math.random() * 1.5 + 0.5
         }));
 
         // --- KARAKTER PEMAIN ---
@@ -125,7 +153,7 @@
                 this.y = y;
                 this.size = 20;
                 this.color = color;
-                this.speed = 4;
+                this.speed = 4.5; // Sedikit dicepatkan agar lebih luwes
                 this.controls = controls;
                 this.lastShoot = 0;
             }
@@ -136,7 +164,7 @@
                 if (keys[this.controls.left] && this.x > this.size) this.x -= this.speed;
                 if (keys[this.controls.right] && this.x < canvas.width - this.size) this.x += this.speed;
 
-                // Tembak
+                // Mekanik Tembak
                 if (keys[this.controls.shoot] && Date.now() - this.lastShoot > 250) {
                     bullets.push(new Bullet(this.x, this.y - this.size, this.color));
                     playSound(600, 'square', 0.08);
@@ -147,9 +175,15 @@
             draw() {
                 ctx.fillStyle = this.color;
                 ctx.beginPath();
-                ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                // Gambar bentuk pesawat sederhana (segitiga) bukan lingkaran
+                ctx.moveTo(this.x, this.y - this.size);
+                ctx.lineTo(this.x + this.size, this.y + this.size);
+                ctx.lineTo(this.x - this.size, this.y + this.size);
+                ctx.closePath();
                 ctx.fill();
-                ctx.shadowBlur = 10;
+                
+                // Efek glow pada pemain
+                ctx.shadowBlur = 15;
                 ctx.shadowColor = this.color;
             }
         }
@@ -159,9 +193,9 @@
             constructor(x, y, color) {
                 this.x = x;
                 this.y = y;
-                this.radius = 4;
+                this.radius = 5;
                 this.color = color;
-                this.speed = 7;
+                this.speed = 8;
             }
 
             update() {
@@ -170,18 +204,21 @@
 
             draw() {
                 ctx.fillStyle = this.color;
+                ctx.shadowBlur = 10;
+                ctx.shadowColor = this.color;
                 ctx.beginPath();
                 ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
                 ctx.fill();
+                ctx.shadowBlur = 0; // Reset shadow agar tidak berat
             }
         }
 
         // --- MUSUH (MENGGUNAKAN LOGO GAMBAR) ---
         class Enemy {
             constructor() {
-                this.x = Math.random() * (canvas.width - 60) + 30;
-                this.y = -30;
-                this.size = 35; // Ukuran logo di canvas
+                this.size = 40; // Ukuran logo di canvas diperbesar sedikit
+                this.x = Math.random() * (canvas.width - this.size * 2) + this.size;
+                this.y = -this.size;
                 this.speed = Math.random() * 1.5 + level * 0.5;
                 
                 // Pilih salah satu dari 4 logo secara acak
@@ -194,11 +231,11 @@
             }
 
             draw() {
-                ctx.shadowBlur = 10;
-                ctx.shadowColor = '#ff0055';
-                
                 // Jika gambar logo berhasil dimuat, gambar logo. Jika gagal, gunakan fallback kotak.
                 if (this.image && this.image.complete && this.image.naturalWidth !== 0) {
+                    // Beri sedikit efek border pada logo
+                    ctx.shadowBlur = 15;
+                    ctx.shadowColor = '#ff0055';
                     ctx.drawImage(
                         this.image, 
                         this.x - this.size / 2, 
@@ -206,109 +243,143 @@
                         this.size, 
                         this.size
                     );
+                    ctx.shadowBlur = 0;
                 } else {
                     ctx.fillStyle = '#ff0055';
+                    ctx.shadowBlur = 15;
+                    ctx.shadowColor = '#ff0055';
                     ctx.fillRect(this.x - this.size / 2, this.y - this.size / 2, this.size, this.size);
+                    ctx.shadowBlur = 0;
                 }
             }
         }
 
         // --- INITIALIZE OBJECTS ---
-        const p1 = new Player(300, 420, '#00f0ff', { up: 'ArrowUp', down: 'ArrowDown', left: 'ArrowLeft', right: 'ArrowRight', shoot: 'Space' });
-        const p2 = new Player(500, 420, '#00ff66', { up: 'KeyW', down: 'KeyS', left: 'KeyA', right: 'KeyD', shoot: 'KeyF' });
+        const p1 = new Player(250, 430, '#00f0ff', { up: 'ArrowUp', down: 'ArrowDown', left: 'ArrowLeft', right: 'ArrowRight', shoot: 'Space' });
+        const p2 = new Player(550, 430, '#00ff66', { up: 'KeyW', down: 'KeyS', left: 'KeyA', right: 'KeyD', shoot: 'KeyF' });
 
         let bullets = [];
         let enemies = [];
 
         // --- TIMING & LEVEL SYSTEM ---
         setInterval(() => {
-            if (!gameOver) {
+            if (!gameOver && gameStarted) {
                 gameTime++;
                 document.getElementById('time').innerText = gameTime;
 
-                // Naik Level Setiap 20 Detik
-                if (gameTime % 20 === 0) {
+                // Naik Level Setiap 15 Detik agar lebih seru
+                if (gameTime % 15 === 0) {
                     level++;
                     document.getElementById('level').innerText = level;
-                    playSound(800, 'sine', 0.3); // Suara level up
+                    playSound(800, 'sine', 0.3);
                 }
             }
         }, 1000);
 
         // Spawn Musuh Berkala
         setInterval(() => {
-            if (!gameOver) {
-                enemies.push(new Enemy());
+            if (!gameOver && gameStarted) {
+                // Semakin tinggi level, semakin cepat musuh spawn
+                const maxEnemies = level + 2; 
+                if (enemies.length < maxEnemies) {
+                    enemies.push(new Enemy());
+                }
             }
-        }, 1200);
+        }, 1000);
 
         // --- MAIN GAME LOOP ---
         function animate() {
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            // Background dengan efek transparan (Trailing effect)
+            ctx.fillStyle = 'rgba(5, 5, 15, 0.4)';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
 
             // 1. Render Background Animasi (Bintang)
             ctx.fillStyle = '#ffffff';
             stars.forEach(star => {
                 star.y += star.speed;
                 if (star.y > canvas.height) star.y = 0;
-                ctx.fillRect(star.x, star.y, star.size, star.size);
+                ctx.beginPath();
+                ctx.arc(star.x, star.y, star.size, 0, Math.PI * 2);
+                ctx.fill();
             });
 
-            if (!gameOver) {
+            if (!gameStarted) {
+                // Layar Mulai
+                ctx.fillStyle = 'rgba(0,0,0,0.7)';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+                ctx.fillStyle = '#00ffcc';
+                ctx.font = 'bold 36px "Segoe UI", sans-serif';
+                ctx.textAlign = 'center';
+                ctx.shadowBlur = 10;
+                ctx.shadowColor = '#00ffcc';
+                ctx.fillText('TEKAN TOMBOL APA SAJA', canvas.width / 2, canvas.height / 2 - 10);
+                ctx.fillText('UNTUK MULAI', canvas.width / 2, canvas.height / 2 + 35);
+                ctx.shadowBlur = 0;
+            } else if (!gameOver) {
                 // 2. Update & Draw Pemain
                 p1.update(); p1.draw();
                 p2.update(); p2.draw();
 
                 // 3. Peluru Update
-                bullets.forEach((bullet, bIndex) => {
-                    bullet.update();
-                    bullet.draw();
-
-                    // Hapus peluru di luar layar
-                    if (bullet.y < 0) bullets.splice(bIndex, 1);
-                });
+                for (let i = bullets.length - 1; i >= 0; i--) {
+                    bullets[i].update();
+                    bullets[i].draw();
+                    if (bullets[i].y < 0) bullets.splice(i, 1);
+                }
 
                 // 4. Musuh Update & Deteksi Tabrakan
-                enemies.forEach((enemy, eIndex) => {
-                    enemy.update();
-                    enemy.draw();
+                for (let i = enemies.length - 1; i >= 0; i--) {
+                    enemies[i].update();
+                    enemies[i].draw();
 
                     // Cek tabrakan dengan peluru
-                    bullets.forEach((bullet, bIndex) => {
-                        const dist = Math.hypot(bullet.x - enemy.x, bullet.y - enemy.y);
-                        if (dist < enemy.size / 2 + bullet.radius) {
-                            enemies.splice(eIndex, 1);
-                            bullets.splice(bIndex, 1);
+                    for (let j = bullets.length - 1; j >= 0; j--) {
+                        const dist = Math.hypot(bullets[j].x - enemies[i].x, bullets[j].y - enemies[i].y);
+                        if (dist < enemies[i].size / 2 + bullets[j].radius) {
+                            // Hancurkan musuh & peluru
+                            enemies.splice(i, 1);
+                            bullets.splice(j, 1);
                             score += 10;
                             document.getElementById('score').innerText = score;
                             playSound(200, 'sawtooth', 0.05); // Suara hancur
+                            break; // Lanjut ke musuh berikutnya
                         }
-                    });
+                    }
 
                     // Cek tabrakan musuh dengan pemain (Game Over)
-                    [p1, p2].forEach(p => {
-                        const dist = Math.hypot(p.x - enemy.x, p.y - enemy.y);
-                        if (dist < enemy.size / 2 + p.size || enemy.y > canvas.height) {
-                            gameOver = true;
-                            playSound(100, 'sawtooth', 0.5); // Suara kalah
-                        }
-                    });
-                });
-
-                requestAnimationFrame(animate);
+                    if (enemies[i]) {
+                        [p1, p2].forEach(p => {
+                            // Hitbox pemain disesuaikan dengan bentuk segitiganya
+                            const dist = Math.hypot(p.x - enemies[i].x, p.y - enemies[i].y);
+                            if (dist < enemies[i].size / 2 + p.size / 1.5 || enemies[i].y > canvas.height) {
+                                gameOver = true;
+                                playSound(100, 'sawtooth', 0.8); // Suara kalah panjang
+                            }
+                        });
+                    }
+                }
             } else {
                 // Tampilan Game Over
                 ctx.fillStyle = 'rgba(0,0,0,0.85)';
                 ctx.fillRect(0, 0, canvas.width, canvas.height);
+                
                 ctx.fillStyle = '#ff0055';
-                ctx.font = '36px sans-serif';
+                ctx.font = 'bold 48px "Segoe UI", sans-serif';
                 ctx.textAlign = 'center';
-                ctx.fillText('GAME OVER', canvas.width / 2, canvas.height / 2 - 20);
+                ctx.shadowBlur = 20;
+                ctx.shadowColor = '#ff0055';
+                ctx.fillText('GAME OVER', canvas.width / 2, canvas.height / 2 - 30);
+                
+                ctx.shadowBlur = 0;
                 ctx.fillStyle = '#fff';
-                ctx.font = '18px sans-serif';
-                ctx.fillText(`Total Skor: ${score} | Bertahan: ${gameTime} Detik`, canvas.width / 2, canvas.height / 2 + 20);
-                ctx.fillText('Refresh (F5) untuk main lagi', canvas.width / 2, canvas.height / 2 + 60);
+                ctx.font = '20px "Segoe UI", sans-serif';
+                ctx.fillText(`Total Skor: ${score}  |  Bertahan: ${gameTime} Detik`, canvas.width / 2, canvas.height / 2 + 20);
+                
+                ctx.fillStyle = '#00ffcc';
+                ctx.fillText('Tekan F5 untuk Main Lagi', canvas.width / 2, canvas.height / 2 + 70);
             }
+
+            requestAnimationFrame(animate);
         }
 
         animate();
